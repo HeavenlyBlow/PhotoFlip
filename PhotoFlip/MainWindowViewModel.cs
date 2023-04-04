@@ -45,7 +45,7 @@ namespace PhotoFlip
         {
             // создаем таймер
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(10);
+            _timer.Interval = TimeSpan.FromSeconds(180);
             _timer.Tick+= Flip;
             _timer.Start();
         }
