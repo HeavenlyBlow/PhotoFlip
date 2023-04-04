@@ -4,18 +4,20 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Newtonsoft.Json;
 
 namespace PhotoFlip
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     {
         private ObservableCollection<DisposableImage> images;
         private SettingsModel _model;
         private Action _scroll;
         private Command _onLoaded;
+        private Command _onUnloaded;
+        private DispatcherTimer _timer;
 
         public ObservableCollection<DisposableImage> Images { get; set; }
 
@@ -33,17 +35,23 @@ namespace PhotoFlip
         {
             InitTimer();
         });
+        
+        public ICommand OnUnloadedCommand => _onUnloaded ??= new Command(a =>
+        {
+            Dispose();
+        });
 
         private void InitTimer()
         {
-            var num = 0; 
-            // устанавливаем метод обратного вызова
-            var tm = new TimerCallback(Flip);
             // создаем таймер
-            var timer = new Timer(tm, num, 60000, 60000);
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromSeconds(10);
+            _timer.Tick+= Flip;
+            _timer.Start();
         }
+        
 
-        private void Flip(object state)
+        private void Flip(object sender, EventArgs e)
         {
             _scroll.Invoke();
         }
@@ -51,8 +59,8 @@ namespace PhotoFlip
 
         private void InitPhoto()
         {
-            var allPhoto = Directory.GetFiles(_model.Path);
-            // var allPhoto = Directory.GetFiles("images");
+            // var allPhoto = Directory.GetFiles(_model.Path);
+            var allPhoto = Directory.GetFiles("images");
             App.CurrentApp.Images = allPhoto.Length;
             
             foreach (var photoPath in allPhoto)
@@ -82,6 +90,15 @@ namespace PhotoFlip
             field = value;
             OnPropertyChanged(propertyName);
             return true;
+        }
+
+        public void Dispose()
+        {
+            _timer.Stop();
+            foreach (var i in images)
+            {
+                i.Dispose();
+            }
         }
     }
 }
